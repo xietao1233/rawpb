@@ -1,3 +1,5 @@
+use crate::error::RunningError;
+
 use super::error::{ParserError, RunningResult};
 use super::pb_item::{PbItem, ProtoType};
 use std::io::{Cursor, Read};
@@ -19,14 +21,19 @@ pub fn read_to_positive(cur: &mut Cursor<&[u8]>) -> RunningResult<u64> {
         .iter()
         .skip(cur.position() as usize)
         .take_while(|p| ((**p) as i8) < 0)
-        .collect::<Vec<&_>>();
+        .collect::<Vec<_>>();
     if val.len() <= 9 {
         let mut buf = vec![0; val.len() + 1];
-        cur.read(&mut buf)?;
-        Ok(buf
-            .into_iter()
-            .rev()
-            .fold(0_u64, |a, b| (a << 7) + (b & 0x7f) as u64))
+        let len = cur.read(&mut buf)?;
+        if len == buf.len() {
+            Ok(buf
+                .into_iter()
+                .rev()
+                .fold(0_u64, |a, b| (a << 7) + (b & 0x7f) as u64))
+        } else {
+            // 没有读到完整的数据
+            Err(RunningError::UnexpectedEnd)
+        }
     } else {
         Err(ParserError::new("解析错误：无效的Variant类型数字！").into())
     }
@@ -34,7 +41,7 @@ pub fn read_to_positive(cur: &mut Cursor<&[u8]>) -> RunningResult<u64> {
 
 /// 解析pb数据为json
 ///
-pub fn parse_pb_data(data: &[u8]) -> RunningResult<Vec<PbItem>> {
+pub fn parse_pb_data(data: &[u8], sif: bool) -> RunningResult<Vec<PbItem>> {
     let mut result = Vec::new();
     let mut buf = Cursor::new(data);
 
@@ -57,14 +64,27 @@ pub fn parse_pb_data(data: &[u8]) -> RunningResult<Vec<PbItem>> {
                 let buf_len = read_to_positive(&mut buf)?;
                 let mut _buf = vec![0; buf_len as usize];
                 buf.read(&mut _buf)?;
-                if let Ok(ret) = String::from_utf8(_buf.clone()) {
-                    pb_item.item_type = ProtoType::String(ret);
-                } else if let Ok(obj) = parse_pb_data(_buf.as_ref()) {
-                    pb_item.item_type = ProtoType::Object(obj);
+                if sif {
+                    if let Ok(ret) = String::from_utf8(_buf.clone()) {
+                        pb_item.item_type = ProtoType::String(ret);
+                    } else if let Ok(obj) = parse_pb_data(_buf.as_ref(), sif) {
+                        pb_item.item_type = ProtoType::Object(obj);
+                    } else {
+                        // pb_item.item_type = ProtoType::Array(_buf);
+                        pb_item.item_type = ProtoType::String(hex::encode(&_buf));
+                    }
+                    pb_item
                 } else {
-                    pb_item.item_type = ProtoType::Array(_buf);
+                    if let Ok(obj) = parse_pb_data(_buf.as_ref(), sif) {
+                        pb_item.item_type = ProtoType::Object(obj);
+                    } else if let Ok(ret) = String::from_utf8(_buf.clone()) {
+                        pb_item.item_type = ProtoType::String(ret);
+                    } else {
+                        // pb_item.item_type = ProtoType::Array(_buf);
+                        pb_item.item_type = ProtoType::String(hex::encode(&_buf));
+                    }
+                    pb_item
                 }
-                pb_item
             }
             5 => {
                 let mut _buf = [0; 4];

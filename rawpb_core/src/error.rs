@@ -4,6 +4,7 @@ pub type RunningResult<T> = Result<T, RunningError>;
 pub enum RunningError {
     ParserError(ParserError),
     IoError(std::io::Error),
+    UnexpectedEnd,
 }
 
 impl std::fmt::Display for RunningError {
@@ -11,6 +12,7 @@ impl std::fmt::Display for RunningError {
         match &self {
             RunningError::ParserError(ref e) => e.fmt(f),
             RunningError::IoError(ref e) => e.fmt(f),
+            RunningError::UnexpectedEnd => "parse end!".fmt(f),
         }
     }
 }
@@ -20,6 +22,7 @@ impl std::error::Error for RunningError {
         match &self {
             RunningError::ParserError(ref e) => Some(e),
             RunningError::IoError(ref e) => Some(e),
+            RunningError::UnexpectedEnd => None,
         }
     }
 }

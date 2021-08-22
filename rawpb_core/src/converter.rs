@@ -28,7 +28,7 @@ fn insert_json_value(obj: &mut Map<String, Value>, item: &PbItem) -> RunningResu
     match item.item_type.clone() {
         ProtoType::Variant(n) | ProtoType::Fixed64(n) => insert_value::<Number, u64>(obj, key, n),
         ProtoType::String(s) => insert_value::<String, String>(obj, key, s),
-        ProtoType::Array(a) => insert_value::<Vec<u8>, Vec<u8>>(obj, key, a),
+        ProtoType::Arrays(a) => insert_value::<Vec<u8>, Vec<u8>>(obj, key, a),
         ProtoType::Object(o) => {
             insert_value::<Map<String, Value>, Map<String, Value>>(obj, key, build_json(o)?)
         }

@@ -1,4 +1,4 @@
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg};
 use rawpb_core::parse_to_pretty;
 use std::io::{Read, Write};
 
@@ -51,41 +51,55 @@ fn main() -> IoResult<()> {
                 .help("\"b\" is binary, \"h\" is hex string, \'B\" is base64 string.")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("who_is_first")
+                .short("w")
+                .long("first")
+                .value_name("WHO_IS_FIRST")
+                .help("\"s\" is String, \"o\" is Object. \"String\" and \"Object\", which is first")
+                .takes_value(true),
+        )
         .get_matches();
 
     let input_file = matches.value_of("input_file").unwrap_or("");
     let output_file = matches.value_of("output_file").unwrap_or("");
     let input_fmt = matches.value_of("format_string").unwrap_or("b");
+    let wif = matches.value_of("who_is_first").unwrap_or("o");
 
     match (
         std::fs::File::open(std::path::Path::new(input_file)),
         std::fs::File::create(std::path::Path::new(output_file)),
     ) {
         (Ok(ref mut f), Ok(ref mut of)) => {
-            parse_data(f, of, InputFormatType::new(input_fmt))?;
+            parse_data(f, of, InputFormatType::new(input_fmt), wif == "o")?;
         }
         (Ok(ref mut f), Err(err)) => {
             println!("output file error: {:?}, 已重定向到stdout.", err);
             let mut of = std::io::stdout();
-            parse_data(f, &mut of, InputFormatType::new(input_fmt))?;
+            parse_data(f, &mut of, InputFormatType::new(input_fmt), wif == "o")?;
         }
         (Err(err), Ok(ref mut of)) => {
             println!("input file error: {:?}, 已重定向到stdin.", err);
             let mut f = std::io::stdin();
-            parse_data(&mut f, of, InputFormatType::new(input_fmt))?;
+            parse_data(&mut f, of, InputFormatType::new(input_fmt), wif == "o")?;
         }
         _ => {
             println!("no input file.");
             let mut f = std::io::stdin();
             let mut of = std::io::stdout();
-            parse_data(&mut f, &mut of, InputFormatType::new(input_fmt))?;
+            parse_data(&mut f, &mut of, InputFormatType::new(input_fmt), wif == "o")?;
         }
     }
 
     Ok(())
 }
 
-fn parse_data(f: &mut impl Read, of: &mut impl Write, fmt: InputFormatType) -> IoResult<()> {
+fn parse_data(
+    f: &mut impl Read,
+    of: &mut impl Write,
+    fmt: InputFormatType,
+    sif: bool,
+) -> IoResult<()> {
     let mut data = Vec::new();
     f.read_to_end(&mut data)?;
     let _data = match fmt {
@@ -93,7 +107,7 @@ fn parse_data(f: &mut impl Read, of: &mut impl Write, fmt: InputFormatType) -> I
         InputFormatType::Base64 => base64::decode(data).expect("输入的base64格式错误!"),
         _ => data,
     };
-    match parse_to_pretty(_data.as_ref()) {
+    match parse_to_pretty(_data.as_ref(), sif) {
         Ok(d) => {
             of.write_all(d.as_bytes())?;
         }

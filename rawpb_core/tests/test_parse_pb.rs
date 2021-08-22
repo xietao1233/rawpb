@@ -4,7 +4,7 @@ use rawpb_core::pb_item::{PbItem, ProtoType};
 #[test]
 fn test_parse_string_and_variant_pb() {
     let data = hex::decode("0A084A6F686E20446F65107B1A106A6F686E406578616D706C652E636F6D").unwrap();
-    let result = parser::parse_pb_data(data.as_ref()).expect("parser error...");
+    let result = parser::parse_pb_data(data.as_ref(), true).expect("parser error...");
     assert_eq!(
         result,
         vec![
@@ -27,7 +27,7 @@ fn test_parse_string_and_variant_pb() {
 #[test]
 fn test_parse_fixed32_and_fixed64_pb() {
     let data = hex::decode("0A084A6F686E20446F652D7B000000E103D202964900000000").unwrap();
-    let result = parser::parse_pb_data(data.as_ref()).expect("parse error...");
+    let result = parser::parse_pb_data(data.as_ref(), true).expect("parse error...");
     assert_eq!(
         result,
         vec![
@@ -50,7 +50,7 @@ fn test_parse_fixed32_and_fixed64_pb() {
 #[test]
 fn test_parse_repeated_pb() {
     let data = hex::decode("0A084A6F686E20446F652D7B0000005203546F6D52054A65727279").unwrap();
-    let result = parser::parse_pb_data(data.as_ref()).expect("parse error...");
+    let result = parser::parse_pb_data(data.as_ref(), true).expect("parse error...");
     assert_eq!(
         result,
         vec![
