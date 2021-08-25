@@ -102,8 +102,12 @@ fn parse_data(
 ) -> IoResult<()> {
     let mut data = Vec::new();
     f.read_to_end(&mut data)?;
+    println!("read buffer: {:?}", hex::encode(&data));
     let _data = match fmt {
-        InputFormatType::HexString => hex::decode(data).expect("输入的hex字符串格式错误!"),
+        InputFormatType::HexString => {
+            // 目的是去除末尾的回车键字符
+            hex::decode(&data[..data.len() - 1]).expect("输入的hex字符串格式错误!")
+        }
         InputFormatType::Base64 => base64::decode(data).expect("输入的base64格式错误!"),
         _ => data,
     };

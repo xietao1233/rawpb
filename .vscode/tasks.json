@@ -12,6 +12,14 @@
 				"isDefault": true
 			},
 			"label": "rust: cargo build"
+		},
+		{
+			"type": "cargo",
+			"command": "test",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			}
 		}
 	]
 }

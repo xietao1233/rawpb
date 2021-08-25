@@ -48,6 +48,13 @@ pub fn parse_pb_data(data: &[u8], sif: bool) -> RunningResult<Vec<PbItem>> {
     loop {
         let val = read_to_positive(&mut buf)?;
         let (_index, _type) = (val >> 3, val & 0x7);
+        if result.iter().any(|i: &PbItem| _index < i.item_index) {
+            // 防止出现后面的序号小于前面的序号
+            return Err(ParserError {
+                message: "解析错误: 异常的序号!".to_string(),
+            }
+            .into());
+        }
         let mut pb_item = PbItem::new(_index, None);
         result.push(match _type {
             0 => {
@@ -62,6 +69,13 @@ pub fn parse_pb_data(data: &[u8], sif: bool) -> RunningResult<Vec<PbItem>> {
             }
             2 => {
                 let buf_len = read_to_positive(&mut buf)?;
+                if buf_len > (data.len() as u64 - buf.position()) {
+                    // 需要的长度超出了剩余的长度
+                    return Err(ParserError {
+                        message: "解析错误: 非法的数据长度!".to_string(),
+                    }
+                    .into());
+                }
                 let mut _buf = vec![0; buf_len as usize];
                 buf.read(&mut _buf)?;
                 if sif {
