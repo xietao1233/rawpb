@@ -21,7 +21,9 @@
             },
             "args": [
                 "--input",
-                "/tmp/test.txt"
+                "/tmp/test.dat",
+                "-f",
+                "B"
             ],
             "env": {
                 "key": "RUST_BACKTRACE",

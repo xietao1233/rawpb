@@ -22,7 +22,7 @@ impl InputFormatType {
     }
 }
 
-fn main() -> IoResult<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("My Super Program")
         .version("1.0")
         .author("Kevin K. <kbknapp@gmail.com>")
@@ -102,13 +102,17 @@ fn parse_data(
 ) -> IoResult<()> {
     let mut data = Vec::new();
     f.read_to_end(&mut data)?;
-    println!("read buffer: {:?}", hex::encode(&data));
     let _data = match fmt {
         InputFormatType::HexString => {
-            // 目的是去除末尾的回车键字符
-            hex::decode(&data[..data.len() - 1]).expect("输入的hex字符串格式错误!")
+            // 去除末尾的回车键字符
+            data.pop();
+            hex::decode(data).expect("输入的hex字符串格式错误!")
         }
-        InputFormatType::Base64 => base64::decode(data).expect("输入的base64格式错误!"),
+        InputFormatType::Base64 => {
+            // 去除末尾的回车键字符
+            data.pop();
+            base64::decode(data).expect("输入的base64格式错误!")
+        }
         _ => data,
     };
     match parse_to_pretty(_data.as_ref(), sif) {
