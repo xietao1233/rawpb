@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input_file = matches.value_of("input_file").unwrap_or("");
     let output_file = matches.value_of("output_file").unwrap_or("");
     let input_fmt = matches.value_of("format_string").unwrap_or("b");
-    let wif = matches.value_of("who_is_first").unwrap_or("o");
+    let wif = matches.value_of("who_is_first").unwrap_or("s");
 
     match (
         std::fs::File::open(std::path::Path::new(input_file)),
@@ -73,18 +73,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         (Ok(ref mut f), Ok(ref mut of)) => {
             parse_data(f, of, InputFormatType::new(input_fmt), wif == "o")?;
         }
-        (Ok(ref mut f), Err(err)) => {
-            println!("output file error: {:?}, 已重定向到stdout.", err);
+        (Ok(ref mut f), Err(_)) => {
+            // println!("output file error: {:?}, 已重定向到stdout.", err);
             let mut of = std::io::stdout();
             parse_data(f, &mut of, InputFormatType::new(input_fmt), wif == "o")?;
         }
-        (Err(err), Ok(ref mut of)) => {
-            println!("input file error: {:?}, 已重定向到stdin.", err);
+        (Err(_), Ok(ref mut of)) => {
+            // println!("input file error: {:?}, 已重定向到stdin.", err);
             let mut f = std::io::stdin();
             parse_data(&mut f, of, InputFormatType::new(input_fmt), wif == "o")?;
         }
         _ => {
-            println!("no input file.");
+            // println!("no input file.");
             let mut f = std::io::stdin();
             let mut of = std::io::stdout();
             parse_data(&mut f, &mut of, InputFormatType::new(input_fmt), wif == "o")?;
