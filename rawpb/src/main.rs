@@ -23,10 +23,10 @@ impl InputFormatType {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = App::new("My Super Program")
+    let matches = App::new("Protobuf data")
         .version("1.0")
-        .author("Kevin K. <kbknapp@gmail.com>")
-        .about("Does awesome things")
+        .author("Taoism<xietao1233@outlook.com>")
+        .about("Parse protobuf data")
         .arg(
             Arg::with_name("output_file")
                 .short("o")
