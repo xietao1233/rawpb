@@ -3,9 +3,7 @@ run-name: ${{ github.actor }} to build project
 on: [push]
 jobs:
   run-build
-    name: to build project
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
       - run: cargo build
-      
