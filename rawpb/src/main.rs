@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::Parser;
 use rawpb_core::parse_to_pretty;
 use std::io::{Read, Write};
 
@@ -22,72 +22,70 @@ impl InputFormatType {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = App::new("Protobuf data")
-        .version("1.0")
-        .author("Taoism<xietao1233@outlook.com>")
-        .about("Parse protobuf data")
-        .arg(
-            Arg::with_name("output_file")
-                .short("o")
-                .long("output")
-                .value_name("FILE")
-                .help("Sets a output file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("input_file")
-                .short("i")
-                .long("input")
-                .value_name("FILE")
-                .help("Sets a input file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("format_string")
-                .short("f")
-                .long("format")
-                .value_name("FORMAT_STRING")
-                .help("\"b\" is binary, \"h\" is hex string, \'B\" is base64 string.")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("who_is_first")
-                .short("w")
-                .long("first")
-                .value_name("WHO_IS_FIRST")
-                .help("\"s\" is String, \"o\" is Object. \"String\" and \"Object\", which is first")
-                .takes_value(true),
-        )
-        .get_matches();
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Sets a input file
+    #[arg(short, long, default_value_t = String::new())]
+    input_file: String,
 
-    let input_file = matches.value_of("input_file").unwrap_or("");
-    let output_file = matches.value_of("output_file").unwrap_or("");
-    let input_fmt = matches.value_of("format_string").unwrap_or("b");
-    let wif = matches.value_of("who_is_first").unwrap_or("s");
+    /// Sets a output file
+    #[arg(short, long, default_value_t = String::new())]
+    output_file: String,
+
+    /// 'b' is binary, 'h' is hex string, 'B' is base64 string.
+    #[arg(short, long, default_value_t = String::from("b"))]
+    format_string: String,
+
+    /// 's' is String, 'o' is Object. "String" and "Object", which is first
+    #[arg(short, long, default_value_t = String::from("s"))]
+    who_is_first: String,
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
+    let input_file = args.input_file;
+    let output_file = args.output_file;
+    let input_fmt = args.format_string;
+    let wif = args.who_is_first;
 
     match (
-        std::fs::File::open(std::path::Path::new(input_file)),
-        std::fs::File::create(std::path::Path::new(output_file)),
+        std::fs::File::open(std::path::Path::new(&input_file)),
+        std::fs::File::create(std::path::Path::new(&output_file)),
     ) {
         (Ok(ref mut f), Ok(ref mut of)) => {
-            parse_data(f, of, InputFormatType::new(input_fmt), wif == "o")?;
+            parse_data(f, of, InputFormatType::new(input_fmt.as_ref()), wif == "o")?;
         }
         (Ok(ref mut f), Err(_)) => {
             // println!("output file error: {:?}, 已重定向到stdout.", err);
             let mut of = std::io::stdout();
-            parse_data(f, &mut of, InputFormatType::new(input_fmt), wif == "o")?;
+            parse_data(
+                f,
+                &mut of,
+                InputFormatType::new(input_fmt.as_ref()),
+                wif == "o",
+            )?;
         }
         (Err(_), Ok(ref mut of)) => {
             // println!("input file error: {:?}, 已重定向到stdin.", err);
             let mut f = std::io::stdin();
-            parse_data(&mut f, of, InputFormatType::new(input_fmt), wif == "o")?;
+            parse_data(
+                &mut f,
+                of,
+                InputFormatType::new(input_fmt.as_ref()),
+                wif == "o",
+            )?;
         }
         _ => {
             // println!("no input file.");
             let mut f = std::io::stdin();
             let mut of = std::io::stdout();
-            parse_data(&mut f, &mut of, InputFormatType::new(input_fmt), wif == "o")?;
+            parse_data(
+                &mut f,
+                &mut of,
+                InputFormatType::new(input_fmt.as_ref()),
+                wif == "o",
+            )?;
         }
     }
 
@@ -109,9 +107,11 @@ fn parse_data(
             hex::decode(data).expect("输入的hex字符串格式错误!")
         }
         InputFormatType::Base64 => {
+            use base64::prelude::*;
+
             // 去除末尾的回车键字符
             data.pop();
-            base64::decode(data).expect("输入的base64格式错误!")
+            BASE64_STANDARD.decode(data).expect("输入的base64格式错误!")
         }
         _ => data,
     };
